@@ -1,2 +1,3 @@
 [build.environment]
   NEXT_PRIVATE_SKIP_TURBOPACK = "1"
+  NODE_VERSION = "18"
