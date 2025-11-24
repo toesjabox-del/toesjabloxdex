@@ -2,6 +2,9 @@
   "name": "toesjabloxdex",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "18"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -27,7 +30,4 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   }
-}
-"engines": {
-  "node": "18"
 }
