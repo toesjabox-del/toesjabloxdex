@@ -1,45 +1,62 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import SignClient from "@walletconnect/sign-client";
-import { WalletConnectModal } from "@walletconnect/modal";
 
 const projectId = "e11ddbfd74ee9b14a4b56b3912340bb5";
 
-// Wallet metadata = belangrijk voor Metamask/OKX
 const metadata = {
   name: "Toesjablox DEX",
   description: "De snelste en eerlijkste DEX",
-  url: "https://toesjablox.dex", // kan nep zijn
+  url: "https://toesjabloxdex.netlify.app",
   icons: ["https://avatars.githubusercontent.com/u/37784886?v=4"],
 };
-
-const modal = new WalletConnectModal({
-  projectId,
-  walletConnectVersion: 2,
-  metadata,
-});
 
 const WalletContext = createContext(null);
 
 export function WalletConnectProvider({ children }) {
   const [client, setClient] = useState(null);
+  const [modal, setModal] = useState(null);
   const [session, setSession] = useState(null);
 
+  // Load WalletConnect libraries CLIENT-SIDE ONLY
   useEffect(() => {
-    async function init() {
-      const _client = await SignClient.init({
-        projectId,
-        metadata,
-      });
+    let mounted = true;
 
-      setClient(_client);
-    }
-    init();
+    (async () => {
+      try {
+        const SignClientModule = await import("@walletconnect/sign-client");
+        const ModalModule = await import("@walletconnect/modal");
+
+        const SignClient = SignClientModule.default || SignClientModule.SignClient;
+        const WalletConnectModal = ModalModule.WalletConnectModal;
+
+        const _client = await SignClient.init({
+          projectId,
+          metadata,
+        });
+
+        const _modal = new WalletConnectModal({
+          projectId,
+          walletConnectVersion: 2,
+          metadata,
+        });
+
+        if (mounted) {
+          setClient(_client);
+          setModal(_modal);
+        }
+      } catch (err) {
+        console.error("WalletConnect failed to load dynamically:", err);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   async function connect() {
-    if (!client) return;
+    if (!client || !modal) return;
 
     const { uri, approval } = await client.connect({
       requiredNamespaces: {
@@ -50,17 +67,16 @@ export function WalletConnectProvider({ children }) {
             "eth_sign",
             "eth_signTypedData",
           ],
-          chains: ["eip155:1"], // Ethereum Mainnet
+          chains: ["eip155:1"],
           events: ["chainChanged", "accountsChanged"],
         },
       },
     });
 
-    if (uri) {
-      modal.openModal({ uri });
-    }
+    if (uri) modal.openModal({ uri });
 
     const sess = await approval();
+
     modal.closeModal();
     setSession(sess);
 
