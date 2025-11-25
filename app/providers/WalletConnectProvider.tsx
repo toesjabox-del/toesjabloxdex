@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { WalletConnectModal } from "@walletconnect/modal";
 
 const projectId = "e11ddbfd74ee9b14a4b56b3912340bb5";
 
@@ -12,22 +11,28 @@ const metadata = {
   icons: ["https://avatars.githubusercontent.com/u/37784886?v=4"],
 };
 
-const modal = new WalletConnectModal({
-  projectId,
-  walletConnectVersion: 2,
-  metadata,
-});
+const WalletContext = createContext<any>(null);
 
-const WalletContext = createContext(null);
-
-export function WalletConnectProvider({ children }) {
+export function WalletConnectProvider({ children }: { children: React.ReactNode }) {
   const [client, setClient] = useState<any>(null);
+  const [modal, setModal] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
 
+  // 🟢 Dynamically load BOTH: WalletConnectModal AND SignClient
   useEffect(() => {
-    // 👉 SignClient wordt nu dynamisch geladen (alleen in browser)
     async function init() {
+      // Load SignClient dynamically
       const { default: SignClient } = await import("@walletconnect/sign-client");
+
+      // Load WalletConnectModal dynamically (to avoid bundling issues)
+      const { WalletConnectModal } = await import("@walletconnect/modal");
+
+      const _modal = new WalletConnectModal({
+        projectId,
+        walletConnectVersion: 2,
+        metadata,
+      });
+      setModal(_modal);
 
       const _client = await SignClient.init({
         projectId,
@@ -41,7 +46,7 @@ export function WalletConnectProvider({ children }) {
   }, []);
 
   async function connect() {
-    if (!client) return;
+    if (!client || !modal) return;
 
     const { uri, approval } = await client.connect({
       requiredNamespaces: {
