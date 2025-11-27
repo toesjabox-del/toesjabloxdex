@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  // géén deprecated of experimental keys!
 };
 
-export default nextConfig;
+module.exports = nextConfig;

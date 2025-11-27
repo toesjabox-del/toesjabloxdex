@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------
+   BASIS KLEUREN
+--------------------------------------------- */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -12,6 +15,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -23,7 +27,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.5s ease, color 0.5s ease;
 }
+
+/* ---------------------------------------------
+   ANIMATIES
+--------------------------------------------- */
+
+/* Fade-in slow */
 @keyframes fadeInSlow {
   from { 
     opacity: 0; 
@@ -38,7 +49,8 @@ body {
 .animate-fadeInSlow {
   animation: fadeInSlow 1.2s ease-out forwards;
 }
-/* Fade + slide-up (zoals Uniswap) */
+
+/* Slide-up animation */
 @keyframes slideUp {
   0% {
     opacity: 0;
@@ -52,4 +64,162 @@ body {
 
 .animate-slideUp {
   animation: slideUp 0.8s ease-out forwards;
+}
+
+/* ---------------------------------------------
+   DISCO MODE - NEW CLEAN VERSION
+--------------------------------------------- */
+
+/* === DISCO BACKGROUND (smooth slow flashing) === */
+@keyframes discoFlash {
+  0% { background: rgba(255, 0, 150, 0.4); }
+  25% { background: rgba(0, 150, 255, 0.4); }
+  50% { background: rgba(0, 255, 150, 0.4); }
+  75% { background: rgba(255, 255, 0, 0.4); }
+  100% { background: rgba(255, 0, 150, 0.4); }
+}
+
+.disco-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  animation: discoFlash 4s ease-in-out infinite;
+  backdrop-filter: blur(3px);
+}
+
+/* === DISCO BALL FALLING === */
+@keyframes discoBallDrop {
+  0% { transform: translateY(-200px) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translateY(0) rotate(720deg); opacity: 1; }
+}
+
+@keyframes discoBallSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(720deg); }
+}
+
+.disco-ball-container {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 200px;
+  z-index: 3000;
+  pointer-events: none;
+  animation: discoBallDrop 1.8s ease-out forwards;
+}
+
+.disco-ball {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, #ccc);
+  box-shadow: 
+    0 0 20px rgba(255, 255, 255, 0.8),
+    0 0 40px rgba(255, 0, 200, 0.5),
+    0 0 60px rgba(0, 180, 255, 0.5);
+
+  background-image:
+    linear-gradient(0deg, rgba(255,255,255,0.5) 50%, transparent 50%),
+    linear-gradient(90deg, rgba(255,255,255,0.5) 50%, transparent 50%);
+
+  background-size: 16px 16px;
+  animation: discoBallSpin 4s linear infinite;
+}
+.disco-ball-reflection {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 20px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  filter: blur(2px);
+}
+/* === TACO CONFETTI === */
+.taco-confetti {
+  position: fixed;
+  top: -40px;
+  animation-name: tacoFall;
+  animation-timing-function: linear;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes tacoFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(120vh) rotate(360deg); opacity: 0; }
+}
+
+/* === DISCO BACKGROUND LIGHTS === */
+@keyframes discoFlashSmooth {
+  0% { background: rgba(255, 0, 150, 0.2); }
+  25% { background: rgba(0, 150, 255, 0.2); }
+  50% { background: rgba(0, 255, 150, 0.2); }
+  75% { background: rgba(255, 255, 0, 0.2); }
+  100% { background: rgba(255, 0, 150, 0.2); }
+}
+
+.disco-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  animation: discoFlashSmooth 6s ease-in-out infinite;
+  backdrop-filter: blur(1px);
+}
+
+/* === DISCO BALL === */
+@keyframes discoBallDrop {
+  0% { transform: translate(-50%, -200px) rotate(0deg); opacity: 0; }
+  40% { opacity: 1; }
+  100% { transform: translate(-50%, 0) rotate(720deg); opacity: 1; }
+}
+
+@keyframes discoBallSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(720deg); }
+}
+
+.disco-ball-container {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  width: 140px;
+  height: 200px;
+  z-index: 3000;
+  pointer-events: none;
+  animation: discoBallDrop 1.8s ease-out forwards;
+}
+
+.disco-ball {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, #ccc);
+  background-image:
+    linear-gradient(0deg, rgba(255,255,255,0.4) 50%, transparent 50%),
+    linear-gradient(90deg, rgba(255,255,255,0.4) 50%, transparent 50%);
+  background-size: 16px 16px;
+  animation: discoBallSpin 5s linear infinite;
+  box-shadow: 
+    0 0 30px rgba(255,255,255,0.8),
+    0 0 60px rgba(255, 0, 200, 0.4),
+    0 0 80px rgba(0, 180, 255, 0.4);
+}
+
+/* === BEAT SHAKE EFFECT (SOFT) === */
+.shake-beat {
+  animation: shakeSoft 0.15s ease;
+}
+
+@keyframes shakeSoft {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
 }

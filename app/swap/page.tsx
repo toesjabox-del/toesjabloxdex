@@ -1,201 +1,148 @@
 "use client";
 
-import Navbar from "../components/Navbar";
-import { useState, useEffect } from "react";
-import { useWallet } from "../providers/WalletConnectProvider";
-import Image from "next/image";
+import { useState } from "react";
+import Navbar from "@/components/Navbar"; // jouw navbar
+import { ethers } from "ethers";
+import { useWallet } from "@/providers/WalletConnectProvider";
 
-const TOKENS = [
+const CHAIN_ID = 56; // BSC
+const NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
-  {
-    symbol: "ETH",
-    address: "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png",
-    decimals: 18,
-  },
-  {
-    symbol: "USDT",
-    address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    logo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
-    decimals: 6,
-  },
-  {
-    symbol: "USDC",
-    address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-    logo: "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
-    decimals: 6,
-  },
-];
+// ODOS: Quote
+async function getQuote(chainId, fromToken, toToken, amount) {
+  const res = await fetch("https://api.odos.xyz/sor/quote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chainId,
+      inputTokens: [{ tokenAddress: fromToken, amount }],
+      outputTokens: [{ tokenAddress: toToken, proportion: 1 }],
+      slippageLimitPercent: 1,
+      userAddr: "0x0000000000000000000000000000000000000000",
+    }),
+  });
+
+  return res.json();
+}
+
+// ODOS: Build TX
+async function buildTx(chainId, pathId, userAddr) {
+  const res = await fetch("https://api.odos.xyz/sor/build", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      userAddr,
+      pathId,
+      chainId,
+      simulate: false,
+    }),
+  });
+
+  return res.json();
+}
 
 export default function SwapPage() {
   const { session } = useWallet();
-  const [tokenIn, setTokenIn] = useState(TOKENS[0]);
-  const [tokenOut, setTokenOut] = useState(TOKENS[1]);
-  const [amount, setAmount] = useState("");
-  const [quote, setQuote] = useState(null);
-  const [mode, setMode] = useState("aggregator"); // later → “pools”
 
+  const [fromToken, setFromToken] = useState(NATIVE);
+  const [toToken, setToToken] = useState(
+    "0x55d398326f99059fF775485246999027B3197955" // USDT
+  );
+  const [amount, setAmount] = useState("0.1");
+  const [quoteData, setQuoteData] = useState(null);
+
+  // ------- GET WALLET ADDRESS -------
   const address = session
     ? session.namespaces.eip155.accounts[0].split(":")[2]
     : null;
-async function executeSwap() {
-  if (!session) return alert("Connect your wallet first");
-  if (!quote) return alert("No quote available");
 
-  const chainId = session.namespaces.eip155.chains[0].split(":")[1];
-
-  const from = address;
-
-  const tx = {
-    from,
-    to: quote.to,               // 0x swap contract
-    data: quote.data,           // encoded calldata
-    value: quote.value || "0",  // ETH value if needed
-    gas: quote.gas || undefined
-  };
-
-  try {
-    const result = await window.ethereum.request({
-      method: "eth_sendTransaction",
-      params: [tx],
-    });
-
-   alert("Swap sent! Tx hash: " + result);
-} catch (err) {
-  console.error(err);
-  alert("Swap failed: " + err.message);
-}
-} //  ← DEZE SLOOT JE FUNCTIE NIET AF!
-
-// Get 0x Quote
-useEffect(() => {
   async function fetchQuote() {
-    if (!amount || !address || mode !== "aggregator") return;
+    if (!amount) return alert("Vul een bedrag in.");
 
-    const amountWei = BigInt(
-      Number(amount) * 10 ** tokenIn.decimals
-    ).toString();
+    const wei = ethers.parseEther(amount);
 
-    const url = `https://api.0x.org/swap/v1/quote?sellToken=${tokenIn.address}&buyToken=${tokenOut.address}&sellAmount=${amountWei}`;
+    const q = await getQuote(CHAIN_ID, fromToken, toToken, wei.toString());
 
-    try {
-      const res = await fetch(url);
-      const data = await res.json();
-      setQuote(data);
-    } catch (err) {
-      console.log("quote error:", err);
-    }
+    setQuoteData(q);
   }
 
-  fetchQuote();
-}, [amount, tokenIn, tokenOut, mode, address]);
+  async function swap() {
+    if (!quoteData) return alert("No quote yet.");
+    if (!address) return alert("Connect je wallet.");
 
-  
-     return (
-    <main className="bg-[#0b0f0c] min-h-screen text-white">
+    const txData = await buildTx(CHAIN_ID, quoteData.pathId, address);
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+
+    const tx = await signer.sendTransaction(txData.transaction);
+    await tx.wait();
+
+    alert("Swap Complete!");
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0a1510] text-white">
       <Navbar />
 
-      <div className="flex justify-center mt-20">
-        <div className="bg-[#122018] p-6 rounded-2xl w-[420px] shadow-lg border border-green-700/30">
+      <div className="max-w-lg mx-auto mt-16 bg-[#10251a] p-8 rounded-2xl shadow-xl border border-green-800/40">
+        <h1 className="text-3xl font-bold text-green-300 mb-8">Swap Tokens</h1>
 
-          {/* MODE SELECTOR */}
-          <div className="flex justify-between mb-4">
-            <button
-              onClick={() => setMode("aggregator")}
-              className={`px-3 py-1 rounded-xl ${
-                mode === "aggregator"
-                  ? "bg-green-600 text-white"
-                  : "bg-[#1a2e22] text-green-300"
-              }`}
-            >
-              Aggregator
-            </button>
+        {/* Amount Input */}
+        <label className="block mb-2 text-green-300">Amount</label>
+        <input
+          type="text"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-full mb-6 p-3 rounded-xl text-black"
+        />
 
-            <button
-              onClick={() => setMode("pools")}
-              className={`px-3 py-1 rounded-xl ${
-                mode === "pools"
-                  ? "bg-green-600 text-white"
-                  : "bg-[#1a2e22] text-green-300"
-              }`}
-            >
-              Pools
-            </button>
+        {/* FROM */}
+        <label className="block mb-2 text-green-300">From Token</label>
+        <input
+          type="text"
+          value={fromToken}
+          onChange={(e) => setFromToken(e.target.value)}
+          className="w-full mb-6 p-3 rounded-xl text-black"
+        />
+
+        {/* TO */}
+        <label className="block mb-2 text-green-300">To Token</label>
+        <input
+          type="text"
+          value={toToken}
+          onChange={(e) => setToToken(e.target.value)}
+          className="w-full mb-6 p-3 rounded-xl text-black"
+        />
+
+        {/* GET QUOTE */}
+        <button
+          onClick={fetchQuote}
+          className="w-full bg-yellow-500 hover:bg-yellow-600 text-black py-3 rounded-xl font-bold mb-6"
+        >
+          Get Quote
+        </button>
+
+        {/* Quote Output */}
+        {quoteData && (
+          <div className="bg-black/30 p-4 rounded-xl mb-6 border border-green-700/40">
+            <p className="text-green-300">
+              Output:{" "}
+              {quoteData.outAmounts?.length
+                ? ethers.formatEther(quoteData.outAmounts[0])
+                : "-"}
+            </p>
           </div>
+        )}
 
-          {/* TITLE */}
-          <h1 className="text-2xl font-bold text-green-300 mb-6 text-center">
-            Swap
-          </h1>
-
-          {/* INPUT BOX */}
-          <div className="bg-[#0f1a14] p-4 rounded-xl border border-green-700/30 mb-4">
-            <div className="flex justify-between mb-1 text-gray-400 text-sm">
-              <span>From</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <input
-                type="number"
-                placeholder="0.0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="bg-transparent outline-none text-2xl w-full"
-              />
-
-              <select
-                value={tokenIn.symbol}
-                onChange={(e) =>
-                  setTokenIn(TOKENS.find((t) => t.symbol === e.target.value))
-                }
-                className="bg-[#1c3227] border border-green-700/40 px-2 py-1 rounded-lg"
-              >
-                {TOKENS.map((t) => (
-                  <option key={t.symbol}>{t.symbol}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* OUTPUT BOX */}
-          <div className="bg-[#0f1a14] p-4 rounded-xl border border-green-700/30 mb-6">
-            <div className="flex justify-between mb-1 text-gray-400 text-sm">
-              <span>To</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-2xl">
-                {quote ? Number(quote.buyAmount / 10 ** tokenOut.decimals).toFixed(6) : "0.0"}
-              </div>
-
-              <select
-                value={tokenOut.symbol}
-                onChange={(e) =>
-                  setTokenOut(TOKENS.find((t) => t.symbol === e.target.value))
-                }
-                className="bg-[#1c3227] border border-green-700/40 px-2 py-1 rounded-lg"
-              >
-                {TOKENS.map((t) => (
-                  <option key={t.symbol}>{t.symbol}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* SWAP BUTTON */}
-          <button
-            onClick={executeSwap}
-            disabled={!quote}
-            className={`w-full py-3 rounded-xl text-lg font-semibold transition ${
-              quote
-                ? "bg-green-600 hover:bg-green-700 text-white"
-                : "bg-gray-600 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            {quote ? "Swap" : "Enter amount"}
-          </button>
-        </div>
+        {/* EXECUTE SWAP */}
+        <button
+          onClick={swap}
+          className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-xl font-bold"
+        >
+          Swap
+        </button>
       </div>
-    </main>
+    </div>
   );
 }
