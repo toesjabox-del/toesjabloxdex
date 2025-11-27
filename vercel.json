@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm run dev",
+  "devCommand": "npm run dev",
+  "outputDirectory": ".",
+  "ignoreCommand": "echo 'ignore build'",
+  "installCommand": "npm install"
+}
