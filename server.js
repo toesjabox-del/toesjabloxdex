@@ -1,10 +1,13 @@
-const { spawn } = require("child_process");
+const { exec } = require("child_process");
 
-const proc = spawn("npm", ["run", "dev"], {
-  stdio: "inherit",
-  shell: true
+console.log("Starting Next.js dev server on Vercel...");
+
+const dev = exec("next dev -p 3000");
+
+dev.stdout.on("data", (data) => {
+  console.log(data.toString());
 });
 
-proc.on("close", (code) => {
-  console.log("Dev server exited:", code);
+dev.stderr.on("data", (data) => {
+  console.error(data.toString());
 });

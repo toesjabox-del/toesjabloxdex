@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "echo 'Skipping build for dev mode on Vercel' && exit 0",
-    "start": "next dev",
-    "vercel-build": "echo 'Skipping Vercel build'"
+    "build": "echo \"Skipping build step\"",
+    "start": "node server.js"
   },
   "dependencies": {
     "@walletconnect/modal": "^2.7.0",
